@@ -21,12 +21,11 @@ then
   ./install-dependencies-ubuntu.sh
 fi
 
+sudo docker compose -f docker-compose-pmm-server-basic.yml up -d
 
 export ADMIN_PASSWORD=admin
 export PMM_SERVER_IP=$(sudo docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' pmm-server)
 export PMM_VERSION=$pmm_version
-
-sudo docker compose -f docker-compose-pmm-server-basic.yml up -d
 
 git clone https://github.com/Percona-QA/package-testing.git
 
