@@ -14,7 +14,8 @@ do
     echo "PMM Version is: $pmm_version"
 done
 
-os_distribution=$(cat /etc/*-release | grep "DISTRIB_ID" | awk -F '=' '{print $2}')
+os_distribution=$(cat /etc/*-release | grep "^NAME" | awk -F '=' '{print $2}')
+
 if [[ $os_distribution =~ "Ubuntu" ]]
 then
   chmod +x install-dependencies-ubuntu.sh
