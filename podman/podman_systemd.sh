@@ -1,3 +1,5 @@
+sudo sysctl net.ipv4.ip_unprivileged_port_start=80
+
 podman rm -f pmm-server
 podman rm -f watchtower
 podman network create pmm-network
@@ -64,7 +66,16 @@ After=time-sync.target
 Restart=on-failure
 RestartSec=20
 
-ExecStart=/bin/bash -l -c '/usr/bin/podman run --volume ~/.config/systemd/user/:/home/pmm/update/ --rm --replace=true --name pmm-server -e PMM_WATCHTOWER_HOST=http://watchtower:8080 -e PMM_WATCHTOWER_TOKEN=123 --net pmm-network --cap-add=net_admin,net_raw --userns=keep-id:uid=1000,gid=1000 -p 443:8443/tcp --ulimit=host docker.io/perconalab/pmm-server-fb:PR-3652-13c00dd>/tmp/options.debug'
+ExecStart=/bin/bash -l -c '/usr/bin/podman run --volume ~/.config/systemd/user/:/home/pmm/update/ \
+		--rm --replace=true \
+		--name pmm-server \
+		-e PMM_WATCHTOWER_HOST=http://watchtower:8080 \
+		-e PMM_WATCHTOWER_TOKEN=123 \
+		--net pmm-network \
+		--cap-add=net_admin,net_raw --userns=keep-id:uid=1000,gid=1000 \
+		-p 443:8443/tcp \
+		--ulimit=host \
+		docker.io/perconalab/pmm-server-fb:PR-3652-13c00dd>/tmp/options.debug'
 
 ExecStop=/usr/bin/podman stop -t 10 %N
 
@@ -89,4 +100,5 @@ while [ $attempt -le 3 ]; do
     sleep 10
 done;
 timeout 100 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://admin:admin@127.0.0.1/ping)" != "200" ]]; do sleep 5; done' || false
+
 
