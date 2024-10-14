@@ -35,6 +35,11 @@ if [[ ! $(apt list --installed | grep "docker") =~ "docker" ]]; then
   ./install_docker.sh
 fi
 
+if [[ ! $(apt list --installed | grep "docker") =~ "vagrant" ]]; then
+    sudo apt-get update
+    sudo apt-get install -y apt-transport-https ca-certificates ansible virtualbox vagrant virtualbox-dkms
+fi
+
 vagrant destroy -f default
 
 sudo docker rm -f pmm-server
