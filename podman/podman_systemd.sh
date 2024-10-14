@@ -5,11 +5,19 @@ if [[ $distribution_name =~ "Rocky Linux" ]]; then
     sudo dnf -y install podman
 fi
 
+if [ -f "/etc/wsl.conf" ]; then
+   . "$HOME/.bash.d/wsl"
+fi
+
 #sudo apt-get update
 #sudo apt-get install -y podman
 
 
 sudo sysctl net.ipv4.ip_unprivileged_port_start=80
+
+systemctl --user enable podman.socket
+systemctl --user start podman.socket
+systemctl --user status podman.socketa
 
 podman rm -f pmm-server
 podman rm -f watchtower
@@ -48,15 +56,16 @@ EOF
 systemctl --user enable --now watchtower
 
 attempt=0
-while [ $attempt -le 20 ]; do
+while [ $attempt -le 10 ]; do
     attempt=$(( $attempt + 1 ))
     echo "Waiting for watchtower to be up (attempt: $attempt)..."
     result=$(systemctl --user status watchtower)
+    echo "$result"
     if grep "he HTTP API is enabled at :8080." <<< $result ; then
         echo "watchtower is ready!"
         break
     fi
-    sleep 5
+    sleep 10
 done;
 
 mkdir -p ~/.config/systemd/user/
@@ -78,11 +87,12 @@ ExecStart=/bin/bash -l -c '/usr/bin/podman run --volume ~/.config/systemd/user/:
 		--name pmm-server \
 		-e PMM_WATCHTOWER_HOST=http://watchtower:8080 \
 		-e PMM_WATCHTOWER_TOKEN=123 \
+		-e PMM_DEV_UPDATE_DOCKER_IMAGE=docker.io/perconalab/pmm-server:3-dev-container
 		--net pmm-network \
 		--cap-add=net_admin,net_raw \
 		-p 80:8080/tcp -p 443:8443/tcp \
 		--ulimit=host \
-		docker.io/perconalab/pmm-server-fb:PR-3652-13c00dd>/tmp/options.debug'
+		docker.io/perconalab/pmm-server-fb:PR-3682-930ab8a>/tmp/options.debug'
 
 ExecStop=/usr/bin/podman stop -t 10 %N
 
