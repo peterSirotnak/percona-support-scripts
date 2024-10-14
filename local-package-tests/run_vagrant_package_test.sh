@@ -31,6 +31,7 @@ export PATH="$PATH:/mnt/c/Program Files/Oracle/VirtualBox"
 #     vb.gui = true
 #   end
 if [[ ! $(apt list --installed | grep "docker") =~ "docker" ]]; then
+    chmod +x install_docker.sh
   ./install_docker.sh
 fi
 
