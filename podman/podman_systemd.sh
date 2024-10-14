@@ -1,3 +1,14 @@
+distribution_name=$(cat /etc/os-release | grep "^NAME=")
+
+if [[ $distribution_name =~ "Rocky Linux" ]]; then
+    echo "Installing Podman on Rocky linux"
+    sudo dnf -y install podman
+fi
+
+#sudo apt-get update
+#sudo apt-get install -y podman
+
+
 sudo sysctl net.ipv4.ip_unprivileged_port_start=80
 
 podman rm -f pmm-server
@@ -37,7 +48,7 @@ EOF
 systemctl --user enable --now watchtower
 
 attempt=0
-while [ $attempt -le 3 ]; do
+while [ $attempt -le 20 ]; do
     attempt=$(( $attempt + 1 ))
     echo "Waiting for watchtower to be up (attempt: $attempt)..."
     result=$(systemctl --user status watchtower)
@@ -45,12 +56,8 @@ while [ $attempt -le 3 ]; do
         echo "watchtower is ready!"
         break
     fi
-    sleep 10
+    sleep 5
 done;
-timeout 100 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://admin:admin@127.0.0.1/ping)" != "200" ]]; do sleep 5; done' || false
-
-
-
 
 mkdir -p ~/.config/systemd/user/
 cat > ~/.config/systemd/user/pmm-server.service <<EOF
@@ -72,8 +79,8 @@ ExecStart=/bin/bash -l -c '/usr/bin/podman run --volume ~/.config/systemd/user/:
 		-e PMM_WATCHTOWER_HOST=http://watchtower:8080 \
 		-e PMM_WATCHTOWER_TOKEN=123 \
 		--net pmm-network \
-		--cap-add=net_admin,net_raw --userns=keep-id:uid=1000,gid=1000 \
-		-p 443:8443/tcp \
+		--cap-add=net_admin,net_raw \
+		-p 80:8080/tcp -p 443:8443/tcp \
 		--ulimit=host \
 		docker.io/perconalab/pmm-server-fb:PR-3652-13c00dd>/tmp/options.debug'
 
@@ -89,7 +96,7 @@ systemctl --user enable --now pmm-server
 export CONTAINER_NAME="pmm-server"
 export LOGS="pmm-managed entered RUNNING state"
 attempt=0
-while [ $attempt -le 3 ]; do
+while [ $attempt -le 20 ]; do
     attempt=$(( $attempt + 1 ))
     echo "Waiting for ${CONTAINER_NAME} to be up (attempt: $attempt)..."
     result=$(systemctl --user status ${CONTAINER_NAME})
@@ -97,8 +104,5 @@ while [ $attempt -le 3 ]; do
         echo "${CONTAINER_NAME} is ready!"
         break
     fi
-    sleep 10
+    sleep 5
 done;
-timeout 100 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://admin:admin@127.0.0.1/ping)" != "200" ]]; do sleep 5; done' || false
-
-
