@@ -9,15 +9,11 @@ if [ -f "/etc/wsl.conf" ]; then
    . "$HOME/.bash.d/wsl"
 fi
 
-#sudo apt-get update
-#sudo apt-get install -y podman
-
-
 sudo sysctl net.ipv4.ip_unprivileged_port_start=80
 
 systemctl --user enable podman.socket
 systemctl --user start podman.socket
-systemctl --user status podman.socketa
+systemctl --user status podman.socket
 
 podman rm -f pmm-server
 podman rm -f watchtower
@@ -68,6 +64,15 @@ while [ $attempt -le 10 ]; do
     sleep 10
 done;
 
+mkdir -p /home/pmm/
+cat > /home/pmm/pmm-server.env <<EOF
+PMM_WATCHTOWER_HOST=http://watchtower:8080
+PMM_WATCHTOWER_TOKEN=123
+PMM_DEV_UPDATE_DOCKER_IMAGE=perconalab/pmm-server:3-dev-container
+EOF
+
+chmod 777 /home/pmm/pmm-server.env
+
 mkdir -p ~/.config/systemd/user/
 cat > ~/.config/systemd/user/pmm-server.service <<EOF
 [Unit]
@@ -78,21 +83,20 @@ After=nss-user-lookup.target nss-lookup.target
 After=time-sync.target
 
 [Service]
+EnvironmentFile=/home/pmm/pmm-server.env
 
 Restart=on-failure
 RestartSec=20
 
-ExecStart=/bin/bash -l -c '/usr/bin/podman run --volume ~/.config/systemd/user/:/home/pmm/update/ \
+ExecStart=/bin/bash -l -c '/usr/bin/podman run --volume /home/pmm/:/home/pmm/update/ \
 		--rm --replace=true \
 		--name pmm-server \
-		-e PMM_WATCHTOWER_HOST=http://watchtower:8080 \
-		-e PMM_WATCHTOWER_TOKEN=123 \
-		-e PMM_DEV_UPDATE_DOCKER_IMAGE=docker.io/perconalab/pmm-server:3-dev-container
+		--env-file=/home/pmm/pmm-server.env \
 		--net pmm-network \
 		--cap-add=net_admin,net_raw \
 		-p 80:8080/tcp -p 443:8443/tcp \
 		--ulimit=host \
-		docker.io/perconalab/pmm-server-fb:PR-3682-930ab8a>/tmp/options.debug'
+		docker.io/perconalab/pmm-server-fb:PR-3682-3337b4e>/tmp/options.debug'
 
 ExecStop=/usr/bin/podman stop -t 10 %N
 
@@ -110,6 +114,7 @@ while [ $attempt -le 20 ]; do
     attempt=$(( $attempt + 1 ))
     echo "Waiting for ${CONTAINER_NAME} to be up (attempt: $attempt)..."
     result=$(systemctl --user status ${CONTAINER_NAME})
+    echo "$result"
     if grep "${LOGS}" <<< $result ; then
         echo "${CONTAINER_NAME} is ready!"
         break
