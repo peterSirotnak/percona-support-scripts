@@ -17,7 +17,11 @@ systemctl --user status podman.socket
 
 podman rm -f pmm-server
 podman rm -f watchtower
+
 podman network create pmm-network
+
+podman pull docker.io/perconalab/pmm-server-fb:PR-3682-3337b4e
+podman pull docker.io/perconalab/watchtower:PMM-12573-podman
 
 mkdir -p ~/.config/systemd/user/
 cat > ~/.config/systemd/user/watchtower.service <<EOF
@@ -41,7 +45,7 @@ ExecStart=/bin/bash -l -c '/usr/bin/podman run --rm --replace=true --name watcht
     -e WATCHTOWER_DEBUG=1 \
     --net pmm-network \
     --cap-add=net_admin,net_raw \
-    docker.io/perconalab/watchtower:PMM-13202-fix-double-unlock>/tmp/options12.debug'
+    docker.io/perconalab/watchtower:PMM-12573-podman>/tmp/options12.debug'
 
 ExecStop=/usr/bin/podman stop -t 10 %N
 
@@ -68,7 +72,7 @@ mkdir -p /home/pmm/
 cat > /home/pmm/pmm-server.env <<EOF
 PMM_WATCHTOWER_HOST=http://watchtower:8080
 PMM_WATCHTOWER_TOKEN=123
-PMM_DEV_UPDATE_DOCKER_IMAGE=perconalab/pmm-server:3-dev-container
+PMM_DEV_UPDATE_DOCKER_IMAGE=docker.io/perconalab/pmm-server:3-dev-latest
 EOF
 
 chmod 777 /home/pmm/pmm-server.env
