@@ -1,17 +1,17 @@
 LINUX_DISTRIBUTION=$(cat /proc/version)
 if [[ "$LINUX_DISTRIBUTION" == *"Ubuntu"* ]]; then
     echo "Installing docker on Ubuntu system"
-    sudo apt-get update
-    sudo apt-get install ca-certificates curl
-    sudo install -m 0755 -d /etc/apt/keyrings
-    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-    sudo chmod a+r /etc/apt/keyrings/docker.asc
+    sudo apt-get update > /dev/null
+    sudo apt-get install ca-certificates curl > /dev/null
+    sudo install -m 0755 -d /etc/apt/keyrings > /dev/null
+    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc > /dev/null
+    sudo chmod a+r /etc/apt/keyrings/docker.asc > /dev/null
     echo \
         "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
         $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
     sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    sudo apt-get update
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    sudo apt-get update > /dev/null
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin > /dev/null
 elif [[ "$LINUX_DISTRIBUTION" == *"Red Hat"* ]]; then
     echo "Installing docker on Red Hat system"
     sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
@@ -74,4 +74,6 @@ done
 docker exec pxc_container1_8.0 percona-release enable pmm3-client release
 docker exec pxc_container1_8.0 apt install -y pmm-client
 docker exec pxc_container1_8.0 sed -i "s/443/8443/g" /usr/local/percona/pmm/config/pmm-agent.yaml
-docker restart pxc_container1_8.0
+PXC_AGENT_PROCESS_ID=$(docker exec pxc_container1_8.0 ps aux | grep "pmm-agent" | awk -F' ' '{ print $2 }')
+docker exec -d pxc_container1_8.0 kill $PXC_AGENT_PROCESS_ID
+docker exec -d pxc_container1_8.0 pmm-agent --config-file=/usr/local/percona/pmm/config/pmm-agent.yaml
