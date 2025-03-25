@@ -25,7 +25,7 @@ elif [[ "${DISTRIBUTION}" =~ "Ubuntu" ]]; then
         $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
     sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     sudo apt-get update
-    sudo apt-get install -y apt-transport-https ca-certificates ansible git wget docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    sudo apt-get install -y apt-transport-https ca-certificates ansible git wget docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin nodejs
 elif [[ "$DISTRIBUTION" == *"Red Hat"* ]]; then
     echo "Installing docker on Red Hat system"
     sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
