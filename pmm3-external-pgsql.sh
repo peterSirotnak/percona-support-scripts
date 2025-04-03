@@ -1,20 +1,18 @@
 wget https://raw.githubusercontent.com/peterSirotnak/percona-support-scripts/refs/heads/main/install_docker.sh
 chmod +x install_docker.sh
 ./install_docker.sh
+
 sudo docker rm -f watchtower
 sudo docker rm -f pmm-server
-sudo docker rm -f external-clickhouse
+sudo docker rm -f external-postgresql
 
 sudo docker network create pmm-network
 sudo docker volume create pmm-volume
 
 docker run --detach --rm --network="pmm-network" \
-    -e CLICKHOUSE_DB=pmm \
-    -e CLICKHOUSE_USER=pmm \
-    -e CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1 \
-    -e CLICKHOUSE_PASSWORD=pmm_password \
-    --name external-clickhouse \
-    clickhouse/clickhouse-server:latest
+    -e POSTGRES_PASSWORD=pmm_password \
+    --name external-postgresql \
+    perconalab/percona-distribution-postgresql:17
 
 sudo docker run --detach --restart always \
 	--network="pmm-network" \
@@ -37,13 +35,13 @@ sudo docker run --detach --restart always \
     -e PMM_WATCHTOWER_HOST=http://watchtower:8080 \
     -e PMM_WATCHTOWER_TOKEN=testUpgradeToken \
     -e PMM_ENABLE_UPDATES=1 \
-    -e PMM_CLICKHOUSE_ADDR=external-clickhouse:9000 \
-    -e PMM_CLICKHOUSE_DATABASE=pmm \
-    -e PMM_CLICKHOUSE_USER=pmm \
-    -e PMM_CLICKHOUSE_PASSWORD=pmm_password \
     -e PMM_ENABLE_TELEMETRY=0 \
-    -e PMM_DISABLE_BUILTIN_CLICKHOUSE=1 \
+    -e PMM_POSTGRES_DBNAME=postgres \
+    -e PMM_POSTGRES_ADDR=external-postgresql:5432 \
+    -e PMM_POSTGRES_USERNAME=postgres \
+    -e PMM_POSTGRES_DBPASSWORD=pmm_password \
+    -e PMM_DISABLE_BUILTIN_POSTGRES=1 \
     --publish 80:8080 --publish 443:8443 \
     --volume pmm-volume:/srv \
     --name pmm-server \
-	perconalab/pmm-server-fb:PR-3847-f05e17e
+	perconalab/pmm-server:3-dev-latest
