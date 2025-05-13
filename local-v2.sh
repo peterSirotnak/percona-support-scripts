@@ -1,26 +1,6 @@
-LINUX_DISTRIBUTION=$(cat /proc/version)
-if [[ "$LINUX_DISTRIBUTION" == *"Ubuntu"* ]]; then
-    echo "Installing docker on Ubuntu system"
-    sudo apt-get update > /dev/null
-    sudo apt-get install ca-certificates curl > /dev/null
-    sudo install -m 0755 -d /etc/apt/keyrings > /dev/null
-    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc > /dev/null
-    sudo chmod a+r /etc/apt/keyrings/docker.asc > /dev/null
-    echo \
-        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-        $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
-    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    sudo apt-get update > /dev/null
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin > /dev/null
-elif [[ "$LINUX_DISTRIBUTION" == *"Red Hat"* ]]; then
-    echo "Installing docker on Red Hat system"
-    sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
-    sudo dnf -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin > /dev/null
-    sudo systemctl --now enable docker
-    sudo dnf install -y epel-release > /dev/null
-    sudo dnf update -y > /dev/null
-    sudo dnf install -y git wget ansible > /dev/null
-fi
+wget https://raw.githubusercontent.com/peterSirotnak/percona-support-scripts/refs/heads/main/install_docker.sh
+chmod +x install_docker.sh
+./install_docker.sh  > /dev/null
 
 docker network create pmm-qa || true
 docker volume create pmm-data
@@ -37,6 +17,9 @@ docker run -d \
     --network pmm-qa \
     --restart always \
     "$DOCKER_VERSION"
+
+LINUX_DISTRIBUTION=$(cat /proc/version)
+
 if [[ "$LINUX_DISTRIBUTION" == *"Ubuntu"* ]]; then
     wget https://raw.githubusercontent.com/percona/pmm-qa/main/pmm-tests/pmm2-client-setup.sh
     chmod +x pmm2-client-setup.sh
@@ -51,7 +34,22 @@ git clone https://github.com/percona/pmm-qa.git
 cd pmm-qa/
 git checkout PMM-13733
 cd pmm-tests/
-bash ./pmm-framework.sh --download --pdpgsql-version 17 --ps-version 8.0 --mo-version 8.0 --addclient=pdpgsql,1 --addclient=ps,1 --addclient=pxc,1 --mongo-replica-for-backup --pmm2
+bash ./pmm-framework.sh --addclient=ps,1 --query-source=slowlog --pmm2
+
+cd ../../
+git clone https://github.com/percona/pmm-ui-tests.git
+cd pmm-ui-tests
+git checkout PMM-7-fix-ps-integration
+npm ci
+apt-get install -y libatspi2.0-0t64 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libglib2.0-0t64 libasound2t64 libnss3 libnspr4 libxdamage1 libpango-1.0-0 libcairo2 > /dev/null
+npx playwright install chromium
+npx codeceptjs run -c "pr.codecept.js" --grep "PMM-T1897"
+
+
+
+
+
+
 
 wget https://raw.githubusercontent.com/percona/pmm/refs/heads/v3/get-pmm.sh
 chmod +x get-pmm.sh

@@ -19,6 +19,7 @@ sudo docker run --detach --restart always \
 	-e WATCHTOWER_DEBUG=1 \
 	-e WATCHTOWER_HTTP_API_TOKEN=testUpgradeToken \
 	-e WATCHTOWER_HTTP_API_UPDATE=1 \
+	--publish 5432:5432 \
 	--volume /var/run/docker.sock:/var/run/docker.sock \
 	--name watchtower \
 	perconalab/watchtower:latest
@@ -40,7 +41,8 @@ sudo docker run --detach --restart always \
     -e PMM_POSTGRES_ADDR=external-postgresql:5432 \
     -e PMM_POSTGRES_USERNAME=postgres \
     -e PMM_POSTGRES_DBPASSWORD=pmm_password \
-    -e PMM_DISABLE_BUILTIN_POSTGRES=1 \
+    -e PMM_DISABLE_BUILTIN_POSTGRES=true \
+    -e GF_DATABASE_URL=postgres://postgres:pmm_password@external-postgresql:5432/postgres \
     --publish 80:8080 --publish 443:8443 \
     --volume pmm-volume:/srv \
     --name pmm-server \
