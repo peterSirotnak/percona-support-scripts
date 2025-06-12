@@ -1,6 +1,10 @@
 wget https://raw.githubusercontent.com/peterSirotnak/percona-support-scripts/refs/heads/main/install_docker.sh
 chmod +x install_docker.sh
 ./install_docker.sh  > /dev/null
+
+docker rm -f $(docker ps -aq)
+docker volume rm $(docker volume ls -q)
+
 sudo docker rm -f watchtower
 sudo docker rm -f pmm-server
 sudo docker volume rm pmm-volume
@@ -28,14 +32,16 @@ sudo docker run --detach --restart always \
     -e PMM_WATCHTOWER_TOKEN=testUpgradeToken \
     -e PMM_ENABLE_UPDATES=1 \
     -e PMM_DEV_UPDATE_DOCKER_IMAGE=perconalab/pmm-server:3-dev-latest \
-    --publish 80:8080 --publish 443:8443 \
+    -e PMM_ENABLE_NOMAD=1 \
+    --publish 80:8080 --publish 443:8443 --publish 4647:4647 \
     --volume pmm-volume:/srv \
     --name pmm-server \
-	perconalab/pmm-server:3-dev-latest
+	    perconalab/pmm-server-fb:PR-3935-c243c22
 
 git clone https://github.com/Percona-Lab/qa-integration.git
 cd qa-integration
-git checkout PMM-7-install-pmm-client-ansible
+git checkout v3
+git pull
 cd pmm_qa
 
 echo "Setting docker based PMM clients"
@@ -50,18 +56,19 @@ pip install setuptools
 python3 pmm-framework.py --v \
         --verbose \
         --verbosity-level=5 \
-        --client-version=pmm3-latest \
-        --database ps=8.4
+        --client-version=https://s3.us-east-2.amazonaws.com/pmm-build-cache/PR-BUILDS/pmm-client/pmm-client-PR-3935-c243c22.tar.gz \
+        --database pdpgsql
 
 wget https://raw.githubusercontent.com/Percona-Lab/qa-integration/refs/heads/v3/pmm_qa/pmm3-client-setup.sh
+chmod +x ./pmm3-client-setup.sh
 ./pmm3-client-setup.sh --pmm_server_ip 127.0.0.1 --client_version https://s3.us-east-2.amazonaws.com/pmm-build-cache/PR-BUILDS/pmm-client/pmm-client-PR-3883-dd79008.tar.gz --admin_password admin --use_metrics_mode no
 cd ../ ../ || true
 
 cd ../
 git clone https://github.com/percona/pmm-ui-tests.git
 cd pmm-ui-tests
-git checkout PMM-12153
+git checkout v3
 npm ci
 apt-get install -y libatspi2.0-0t64 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libglib2.0-0t64 libasound2t64 libnss3 libnspr4 libxdamage1 libpango-1.0-0 libcairo2 > /dev/null
 npx playwright install chromium
-npx codeceptjs run -c "pr.codecept.js" --grep "PMM-T9999"
+npx codeceptjs run -c "pr.codecept.js" --grep "Verify Adding Postgresql, MySQL, MongoDB SSL services remotely via API before upgrade @pre-ssl-upgrade"
