@@ -17,6 +17,8 @@ if [[ "${DISTRIBUTION}" =~ "Debian" ]]; then
 	sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 	sudo apt-get update
     sudo apt-get install -y apt-transport-https ca-certificates ansible git wget docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    sudo sed -i '/ppa.launchpad.net\/ansible\/ansible\/ubuntu jammy main/d' /etc/apt/sources.list
+    sudo apt-get update
 elif [[ "${DISTRIBUTION}" =~ "Ubuntu" ]]; then
     sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
     sudo chmod a+r /etc/apt/keyrings/docker.asc
