@@ -6,10 +6,13 @@ echo "Docker Installed"
 
 docker rm -f $(docker ps -aq)
 docker volume rm $(docker volume ls -q)
+docker rmi -f $(docker images -q)
+docker system prune -a --volumes -f
 
 sudo docker rm -f watchtower
 sudo docker rm -f pmm-server
 sudo docker volume rm pmm-volume
+
 sudo docker network create pmm-network
 sudo docker volume create pmm-volume
 
@@ -25,9 +28,14 @@ sudo docker run --detach --restart always \
     --publish 80:8080 --publish 443:8443 -p 4647:4647 \
     --volume pmm-volume:/srv \
     --name pmm-server \
-        perconalab/pmm-server:3-dev-latest
+	perconalab/pmm-server:3-dev-latest
 
-cat > test_runner.sh <<'EOF'
+#almalinux/10-base:10
+#oraclelinux:10
+
+export DOCKER_TAG="oraclelinux:10"
+
+cat > test.sh <<'EOF'
 #!/bin/bash
 if [ -f /etc/os-release ]; then
   . /etc/os-release
@@ -47,12 +55,11 @@ is_debian_like() { [[ "$distro_id" == "debian" || "$distro_id" == "ubuntu" || "$
 is_rhel_like()   { [[ "$distro_id" =~ ^(rhel|centos|rocky|almalinux|fedora|ol|oracle)$ || "$distro_like" == *"rhel"* || "$distro_like" == *"fedora"* ]]; }
 
 if is_debian_like; then
-        apt-get update
-        apt-get install -y apt-transport-https ca-certificates ansible git wget iproute2
+	apt-get update
+    apt-get install -y apt-transport-https ca-certificates ansible git wget iproute
 elif is_rhel_like; then
-        dnf install -y epel-release >/dev/null || true
-        dnf update -y > /dev/null
-        dnf install -y git wget ansible-core iproute gflags
+    dnf update -y > /dev/null
+    dnf install -y git wget ansible-core iproute
 fi
 
 cat >/usr/local/bin/sudo <<'SH'
@@ -63,31 +70,20 @@ chmod +x /usr/local/bin/sudo
 
 git clone https://github.com/Percona-QA/package-testing.git
 cd package-testing
-git checkout PMM-7-docker-package-tests
-git pull
+git checkout PMM-7-rhel-10-arm
 
 export PMM_SERVER_IP=pmm-server
+
 ansible-playbook -vvv --connection=local --inventory 127.0.0.1, --limit 127.0.0.1 playbooks/pmm3-client_integration.yml
+tail -f /dev/null
 EOF
 
-chmod +x test_runner.sh
-export DOCKER_TAG="almalinux-9"
-docker run -d --rm \
-    --privileged \
-    --network="pmm-network" \
-    -v "$PWD:/work" \
-    -w /work \
-    -e install_package=pmm3-client \
-    -e install_repo=testing \
-    -e PMM_SERVER_IP=pmm-server \
-    -e IS_DOCKER=true \
-    -e PMM_VERSION=3.4.0 \
-    -u 0 \
-    --cgroupns=host \
-    -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
-    -v /tmp/$(mktemp -d):/run \
-    --name pmm-client \
-    antmelekhin/docker-systemd:${DOCKER_TAG} \
-    /usr/sbin/init
+# Make script executable
+chmod +x test.sh
 
-docker exec pmm-client /work/test_runner.sh
+# Step 2: Run container with test.sh as entrypoint
+docker run --detach --rm \
+   --network="pmm-network" \
+  -v $(pwd)/test.sh:/test.sh \
+  --entrypoint /test.sh \
+  rockylinux:9

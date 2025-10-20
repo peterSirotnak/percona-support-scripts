@@ -27,7 +27,8 @@ git clone https://github.com/Percona-QA/package-testing.git
 cd package-testing
 git checkout v3
 
-export PMM_VERSION=3.2.0
+export PMM_VERSION=3.4.1
 export PMM_SERVER_IP=127.0.0.1
+export TARBALL_LINK=https://s3.us-east-2.amazonaws.com/pmm-build-cache/PR-BUILDS/pmm-client-arm/pmm-client-latest-805.tar.gz
 
-ansible-playbook -vvv --connection=local --inventory 127.0.0.1, --limit 127.0.0.1 playbooks/pmm3-client_integration.yml
+ansible-playbook -vvv --connection=local --inventory 127.0.0.1, --limit 127.0.0.1 playbooks/pmm3-client_integration_custom_port.yml
