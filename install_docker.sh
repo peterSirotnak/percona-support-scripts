@@ -35,5 +35,5 @@ elif [[ "$DISTRIBUTION" == *"Red Hat"* ]]; then
     sudo systemctl --now enable docker
     sudo dnf install -y epel-release > /dev/null
     sudo dnf update -y > /dev/null
-    sudo dnf install -y git wget ansible-core dpkg
+    sudo dnf install -y git wget ansible-core
 fi
