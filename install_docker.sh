@@ -29,6 +29,13 @@ elif [[ "${DISTRIBUTION}" =~ "Ubuntu" ]]; then
     sudo apt-get update
     sudo apt-get install -y apt-transport-https ca-certificates ansible git wget docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin nodejs npm
 elif [[ "$DISTRIBUTION" == *"Red Hat"* ]]; then
+    if [[ "$DISTRIBUTION" == *"el10"* ]]; then
+        sudo dnf install -y iptables iptables-legacy iptables-nft ebtables
+        sudo dnf install -y kmod-kpartx kmod br_netfilter
+        sudo modprobe br_netfilter
+        sudo modprobe xt_addrtype
+        sudo modprobe nf_nat
+    fi
     echo "Installing docker on Red Hat system"
     sudo dnf -y install dnf-plugins-core
     sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
