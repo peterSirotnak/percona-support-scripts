@@ -30,8 +30,9 @@ elif [[ "${DISTRIBUTION}" =~ "Ubuntu" ]]; then
     sudo apt-get install -y apt-transport-https ca-certificates ansible git wget docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin nodejs npm
 elif [[ "$DISTRIBUTION" == *"Red Hat"* ]]; then
     echo "Installing docker on Red Hat system"
+    sudo dnf -y install dnf-plugins-core
     sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
-    sudo dnf -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin > /dev/null
+    sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin > /dev/null
     sudo systemctl --now enable docker
     sudo dnf install -y epel-release > /dev/null
     sudo dnf update -y > /dev/null
