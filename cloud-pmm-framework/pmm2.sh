@@ -31,31 +31,31 @@ export PMM_CLIENT_VERSION=2.44.1
 LINUX_DISTRIBUTION=$(cat /proc/version)
 
 if [[ "$LINUX_DISTRIBUTION" == *"Ubuntu"* ]]; then
-    wget https://raw.githubusercontent.com/percona/pmm-qa/main/pmm-tests/pmm2-client-setup.sh
+    wget https://raw.githubusercontent.com/percona/pmm-qa/v2/pmm-tests/pmm2-client-setup.sh
     chmod +x pmm2-client-setup.sh
     bash -x ./pmm2-client-setup.sh --pmm_server_ip 127.0.0.1 --client_version dev-latest --admin_password admin --use_metrics_mode no
 elif [[ "$LINUX_DISTRIBUTION" == *"Red Hat"* ]]; then
-    wget https://raw.githubusercontent.com/percona/pmm-qa/main/pmm-tests/pmm2-client-setup-centos.sh
+    wget https://raw.githubusercontent.com/percona/pmm-qa/v2/pmm-tests/pmm2-client-setup-centos.sh
     chmod +x pmm2-client-setup-centos.sh
     bash -x ./pmm2-client-setup-centos.sh --pmm_server_ip 127.0.0.1 --client_version dev-latest --admin_password admin --use_metrics_mode no
 fi
 
-wget https://raw.githubusercontent.com/percona/pmm-qa/refs/heads/main/pmm-tests/pmm-framework.sh
+wget https://raw.githubusercontent.com/percona/pmm-qa/refs/heads/PMM-fix-v2-setup/pmm-tests/pmm-framework.sh
 chmod +x ./pmm-framework.sh
-bash ./pmm-framework.sh \
+bash ./pmm-framework.sh --download --pdpgsql-version 17 --ps-version 8.0 --mo-version 8.0 --addclient=pdpgsql,1 --addclient=ps,1 --mongo-replica-for-backup --pmm2
     --download \
     --pmm2 \
     --dbdeployer \
     --run-load-pmm2 \
     --pmm2-server-ip=127.0.0.1 \
-    --addclient=ps,1
+    --mongo-replica-for-backup
 
 echo "Waiting for four minutes to get data!"
 sleep 180
 
 wget https://raw.githubusercontent.com/percona/pmm/refs/heads/v3/get-pmm.sh
 chmod +x get-pmm.sh
-./get-pmm.sh -n pmm-server -b --network-name pmm-qa --tag "PR-3924-34df92d" --repo "perconalab/pmm-server-fb"
+./get-pmm.sh -n pmm-server -b --network-name pmm-qa --tag "PR-4065-be7b215" --repo "perconalab/pmm-server-fb"
 
 sudo percona-release enable pmm3-client experimental
 sudo apt install -y pmm-client

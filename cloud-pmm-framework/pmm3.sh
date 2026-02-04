@@ -20,9 +20,9 @@ sudo docker run --detach --restart always \
 	-e WATCHTOWER_HTTP_API_UPDATE=1 \
 	--volume /var/run/docker.sock:/var/run/docker.sock \
 	--name watchtower \
-	perconalab/watchtower:latest
+	perconalab/watchtower:dev-latest
 
-sleep 10
+sleep 5
 
 export PUBLIC_IP=$(curl -s https://ipinfo.io/ip)
 
@@ -39,15 +39,17 @@ sudo docker run --detach --restart always \
     -e PMM_DEV_UPDATE_DOCKER_IMAGE=perconalab/pmm-server:3-dev-latest \
     -e PMM_ENABLE_NOMAD=1 \
     -e PMM_PUBLIC_ADDRESS=$PUBLIC_IP \
+    -e PMM_ENABLE_NOMAD=1 \
+    -e PMM_ENABLE_TELEMETRY=0 \
     --publish 80:8080 --publish 443:8443 -p 4647:4647 \
     --volume pmm-volume:/srv \
     --name pmm-server \
-        perconalab/pmm-server:3.4.1
+        perconalab/pmm-server:3.6.0-rc
 
 rm -fr qa-integration
 git clone https://github.com/Percona-Lab/qa-integration.git
 cd qa-integration
-git checkout PMM-7-single-pmm-client-setup
+git checkout main
 git pull
 cd pmm_qa
 
@@ -63,12 +65,9 @@ pip install setuptools
 export ADMIN_PASSWORD="Heslo123"
 docker exec pmm-server change-admin-password Heslo123
 
-export CLIENT_VERSION=3.4.1
-
-python3 pmm-framework.py --v \
-        --verbose \
-        --verbosity-level=5 \
-        --client-version=3.4.1 \
+python3 pmm-framework.py \
+        --verbosity-level=3 \
+        --client-version=https://s3.us-east-2.amazonaws.com/pmm-build-cache/PR-BUILDS/pmm-client/pmm-client-latest-1263.tar.gz \
         --pmm-server-password=Heslo123 \
         --database ps=8.4
 
@@ -84,4 +83,20 @@ git checkout v3
 npm ci
 apt-get install -y libatspi2.0-0t64 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libglib2.0-0t64 libasound2t64 libnss3 libnspr4 libxdamage1 libpango-1.0-0 libcairo2 > /dev/null
 npx playwright install chromium
-npx codeceptjs run -c "pr.codecept.js" --grep "Adding custom agent password, custom label before upgrade at service Level @pre-custom-password-upgrade"
+npx codeceptjs run -c "pr.codecept.js" --grep "@pgsm-pmm-integration"
+
+cd ../
+git clone https://github.com/percona/pmm-qa.git
+cd pmm-qa/e2e_tests/
+git checkout main
+npm i
+npx playwright install-deps
+npx playwright install chromium
+npx playwright test -g "PMM-T1897"
+
+docker exec ps_pmm_8.4_1 mysql -u root -pGRgrO9301RuF -e 'CREATE DATABASE IF NOT EXISTS T1897'
+docker cp ./PMM-T1897.sql ${PDPGSQL_CONTAINER}:/PMM-T1897.sql
+docker exec -i ps_pmm_8.4_1 mysql -u root -pGRgrO9301RuF < /${PWD}/testdata/PMM-T1897.sql
+
+
+npx playwright test --grep @pmm-ps-integration
